@@ -427,7 +427,8 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
                         ctx.resource().injectGeneric(item.prjPred);
 
                     // Register handler only if local node passes projection predicate.
-                    if (item.prjPred == null || item.prjPred.apply(ctx.discovery().localNode())) {
+                    if ((item.prjPred == null || item.prjPred.apply(ctx.discovery().localNode())) &&
+                        !locInfos.containsKey(item.routineId)) {
                         if (registerHandler(data.nodeId, item.routineId, item.hnd, item.bufSize, item.interval,
                             item.autoUnsubscribe, false))
                             item.hnd.onListenerRegistered(item.routineId, ctx);
@@ -435,7 +436,7 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
 
                     if (!item.autoUnsubscribe)
                         // Register routine locally.
-                        locInfos.put(item.routineId, new LocalRoutineInfo(
+                        locInfos.putIfAbsent(item.routineId, new LocalRoutineInfo(
                             item.prjPred, item.hnd, item.bufSize, item.interval, item.autoUnsubscribe));
                 }
                 catch (IgniteCheckedException e) {
@@ -885,10 +886,16 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
                 if (prjPred != null)
                     ctx.resource().injectGeneric(prjPred);
 
-                if (prjPred == null || prjPred.apply(ctx.discovery().node(ctx.localNodeId()))) {
+                if ((prjPred == null || prjPred.apply(ctx.discovery().node(ctx.localNodeId()))) &&
+                    !locInfos.containsKey(routineId)) {
                     registered = registerHandler(node.id(), routineId, hnd, data.bufferSize(), data.interval(),
                         data.autoUnsubscribe(), false);
                 }
+
+                if (!data.autoUnsubscribe())
+                    // Register routine locally.
+                    locInfos.putIfAbsent(routineId, new LocalRoutineInfo(
+                        prjPred, hnd, data.bufferSize(), data.interval(), data.autoUnsubscribe()));
             }
             catch (IgniteCheckedException e) {
                 err = e;
@@ -1092,22 +1099,30 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
      */
     @SuppressWarnings("TooBroadScope")
     private void unregisterRemote(UUID routineId) {
-        RemoteRoutineInfo info;
+        RemoteRoutineInfo remote;
+        LocalRoutineInfo loc = null;
 
         stopLock.lock();
 
         try {
-            info = rmtInfos.remove(routineId);
+            remote = rmtInfos.remove(routineId);
 
-            if (info == null)
+            if (remote == null)
+                // Removes routine at node started it when stopRoutine called from another node.
+                loc = locInfos.remove(routineId);
+
+            if (remote == null)
                 stopped.add(routineId);
         }
         finally {
             stopLock.unlock();
         }
 
-        if (info != null)
-            unregisterHandler(routineId, info.hnd, false);
+        if (remote != null)
+            unregisterHandler(routineId, remote.hnd, false);
+
+        if (loc != null)
+            unregisterHandler(routineId, loc.hnd, false);
     }
 
     /**
