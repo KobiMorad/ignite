@@ -179,6 +179,8 @@ public class GridMessageListenHandler implements GridContinuousHandler {
             topic = ctx.config().getMarshaller().unmarshal(topicBytes, ldr);
 
         pred = ctx.config().getMarshaller().unmarshal(predBytes, ldr);
+
+        depEnabled = false;
     }
 
     /** {@inheritDoc} */
