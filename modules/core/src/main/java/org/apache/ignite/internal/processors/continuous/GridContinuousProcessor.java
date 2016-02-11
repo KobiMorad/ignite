@@ -40,6 +40,7 @@ import org.apache.ignite.cluster.ClusterNode;
 import org.apache.ignite.events.DiscoveryEvent;
 import org.apache.ignite.events.Event;
 import org.apache.ignite.internal.GridKernalContext;
+import org.apache.ignite.internal.GridMessageListenHandler;
 import org.apache.ignite.internal.IgniteClientDisconnectedCheckedException;
 import org.apache.ignite.internal.IgniteDeploymentCheckedException;
 import org.apache.ignite.internal.IgniteInternalFuture;
@@ -860,6 +861,10 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
             U.error(log, "Failed to register handler [nodeId=" + node.id() + ", routineId=" + routineId + ']', e);
         }
 
+        GridContinuousHandler hnd0 = hnd instanceof GridMessageListenHandler ?
+            new GridMessageListenHandler((GridMessageListenHandler)hnd) :
+            hnd;
+
         if (node.isClient()) {
             Map<UUID, LocalRoutineInfo> clientRoutineMap = clientInfos.get(node.id());
 
@@ -872,7 +877,7 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
             }
 
             clientRoutineMap.put(routineId, new LocalRoutineInfo(data.projectionPredicate(),
-                hnd,
+                hnd0,
                 data.bufferSize(),
                 data.interval(),
                 data.autoUnsubscribe()));
@@ -889,14 +894,14 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
 
                 if ((prjPred == null || prjPred.apply(ctx.discovery().node(ctx.localNodeId()))) &&
                     !locInfos.containsKey(routineId)) {
-                    registered = registerHandler(node.id(), routineId, hnd, data.bufferSize(), data.interval(),
+                    registered = registerHandler(node.id(), routineId, hnd0, data.bufferSize(), data.interval(),
                         data.autoUnsubscribe(), false);
                 }
 
                 if (!data.autoUnsubscribe())
                     // Register routine locally.
                     locInfos.putIfAbsent(routineId, new LocalRoutineInfo(
-                        prjPred, hnd, data.bufferSize(), data.interval(), data.autoUnsubscribe()));
+                        prjPred, hnd0, data.bufferSize(), data.interval(), data.autoUnsubscribe()));
             }
             catch (IgniteCheckedException e) {
                 err = e;
@@ -906,11 +911,11 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
         }
 
         // Load partition counters.
-        if (hnd.isQuery()) {
+        if (hnd0.isQuery()) {
             GridCacheProcessor proc = ctx.cache();
 
             if (proc != null) {
-                GridCacheAdapter cache = ctx.cache().internalCache(hnd.cacheName());
+                GridCacheAdapter cache = ctx.cache().internalCache(hnd0.cacheName());
 
                 if (cache != null && !cache.isLocal()) {
                     Map<Integer, Long> cntrs = cache.context().topology().updateCounters();
@@ -924,7 +929,7 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
             req.addError(ctx.localNodeId(), err);
 
         if (registered)
-            hnd.onListenerRegistered(routineId, ctx);
+            hnd0.onListenerRegistered(routineId, ctx);
     }
 
     /**
@@ -1115,9 +1120,7 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
         try {
             remote = rmtInfos.remove(routineId);
 
-            if (remote == null)
-                // Removes routine at node started it when stopRoutine called from another node.
-                loc = locInfos.remove(routineId);
+            loc = locInfos.remove(routineId);
 
             if (remote == null)
                 stopped.add(routineId);
@@ -1128,8 +1131,8 @@ public class GridContinuousProcessor extends GridProcessorAdapter {
 
         if (remote != null)
             unregisterHandler(routineId, remote.hnd, false);
-
-        if (loc != null)
+        else
+            // Removes routine at node started it when stopRoutine called from another node.
             unregisterHandler(routineId, loc.hnd, false);
     }
 

@@ -83,6 +83,22 @@ public class GridMessageListenHandler implements GridContinuousHandler {
         this.pred = pred;
     }
 
+    /**
+     *
+     * @param orig Handler to be copied.
+     */
+    public GridMessageListenHandler(GridMessageListenHandler orig) {
+        assert orig != null;
+
+        this.clsName = orig.clsName;
+        this.depInfo = orig.depInfo;
+        this.pred = orig.pred;
+        this.predBytes = orig.predBytes;
+        this.topic = orig.topic;
+        this.topicBytes = orig.topicBytes;
+        this.depEnabled = false;
+    }
+
     /** {@inheritDoc} */
     @Override public boolean isEvents() {
         return false;
@@ -179,8 +195,6 @@ public class GridMessageListenHandler implements GridContinuousHandler {
             topic = ctx.config().getMarshaller().unmarshal(topicBytes, ldr);
 
         pred = ctx.config().getMarshaller().unmarshal(predBytes, ldr);
-
-        depEnabled = false;
     }
 
     /** {@inheritDoc} */
