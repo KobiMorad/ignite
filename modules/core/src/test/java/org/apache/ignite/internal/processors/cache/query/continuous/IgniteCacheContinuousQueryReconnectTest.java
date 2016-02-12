@@ -173,7 +173,7 @@ public class IgniteCacheContinuousQueryReconnectTest extends GridCommonAbstractT
 
         putAndCheck(clCache, 2); // 2 remote listeners.
 
-        stopGrid(1);
+        stopGrid(1); // Client node.
 
         isClient = true;
 
@@ -184,5 +184,9 @@ public class IgniteCacheContinuousQueryReconnectTest extends GridCommonAbstractT
         clCache = client.cache(null);
 
         putAndCheck(clCache, 2); // 2 remote listeners.
+
+        Ignite srv4 = startGrid(5);
+
+        putAndCheck(clCache, 3); // 3 remote listeners.
     }
 }
