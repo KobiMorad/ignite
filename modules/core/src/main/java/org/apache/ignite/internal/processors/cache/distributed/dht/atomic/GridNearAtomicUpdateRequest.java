@@ -1024,6 +1024,13 @@ public class GridNearAtomicUpdateRequest extends GridCacheMessage implements Gri
         return reader.afterMessageRead(GridNearAtomicUpdateRequest.class);
     }
 
+    /**
+     * Cleanup values.
+     */
+    public void cleanup() {
+        vals = null;
+    }
+
     /** {@inheritDoc} */
     @Override public byte directType() {
         return 40;

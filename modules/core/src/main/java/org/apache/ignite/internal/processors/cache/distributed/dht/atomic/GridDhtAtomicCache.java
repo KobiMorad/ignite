@@ -1459,6 +1459,9 @@ public class GridDhtAtomicCache<K, V> extends GridDhtCacheAdapter<K, V> {
 
                         res.returnValue(retVal);
 
+                        if (req.writeSynchronizationMode() != FULL_ASYNC)
+                            req.cleanup();
+
                         if (dhtFut != null)
                             ctx.mvcc().addAtomicFuture(dhtFut.version(), dhtFut);
                     }
