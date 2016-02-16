@@ -861,8 +861,6 @@ public class GridDhtAtomicUpdateRequest extends GridCacheMessage implements Grid
 
         }
 
-        cleanup();
-
         return true;
     }
 
@@ -1060,6 +1058,11 @@ public class GridDhtAtomicUpdateRequest extends GridCacheMessage implements Grid
         }
 
         return reader.afterMessageRead(GridDhtAtomicUpdateRequest.class);
+    }
+
+    /** {@inheritDoc} */
+    @Override public void onAckReceived() {
+        cleanup();
     }
 
     /**
