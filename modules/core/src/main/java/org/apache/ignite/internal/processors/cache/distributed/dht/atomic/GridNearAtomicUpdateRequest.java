@@ -1026,9 +1026,18 @@ public class GridNearAtomicUpdateRequest extends GridCacheMessage implements Gri
 
     /**
      * Cleanup values.
+     *
+     * @param clearKeys If {@code true} clears keys.
      */
-    public void cleanup() {
+    public void cleanup(boolean clearKeys) {
         vals = null;
+        entryProcessors = null;
+        entryProcessorsBytes = null;
+        invokeArgs = null;
+        invokeArgsBytes = null;
+
+        if (clearKeys)
+            keys = null;
     }
 
     /** {@inheritDoc} */

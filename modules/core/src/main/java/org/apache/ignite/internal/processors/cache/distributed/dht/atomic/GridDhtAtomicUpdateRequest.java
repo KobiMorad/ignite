@@ -1071,8 +1071,9 @@ public class GridDhtAtomicUpdateRequest extends GridCacheMessage implements Grid
 
         // Do not keep values if they are not needed for continuous query notification.
         if (locPrevVals == null) {
-           vals = null;
-           locPrevVals = null;
+            keys = null;
+            vals = null;
+            locPrevVals = null;
         }
     }
 

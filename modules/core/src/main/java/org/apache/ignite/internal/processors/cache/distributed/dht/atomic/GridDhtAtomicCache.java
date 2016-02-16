@@ -1460,7 +1460,7 @@ public class GridDhtAtomicCache<K, V> extends GridDhtCacheAdapter<K, V> {
                         res.returnValue(retVal);
 
                         if (req.writeSynchronizationMode() != FULL_ASYNC)
-                            req.cleanup();
+                            req.cleanup(!node.isLocal());
 
                         if (dhtFut != null)
                             ctx.mvcc().addAtomicFuture(dhtFut.version(), dhtFut);
@@ -1518,7 +1518,7 @@ public class GridDhtAtomicCache<K, V> extends GridDhtCacheAdapter<K, V> {
         if (remap) {
             assert dhtFut == null;
 
-            res.remapKeys(req.keys());
+            res.remapKeys(keys);
 
             completionCb.apply(req, res);
         }
